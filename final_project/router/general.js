@@ -10,111 +10,99 @@ public_users.post("/register", (req,res) => {
   const password = req.body.password;
 
   if (username && password) {
-    if (!isValid(username)) {
+    if (!isValid(username)) { 
       users.push({"username":username,"password":password});
-      return res.status(200).send("Customer successfully registered. Now you can login");
+      return res.status(200).json({message: "User successfully registered. Now you can login"});
     } else {
-      return res.status(404).send("User already exists!");
+      return res.status(404).json({message: "User already exists!"});    
     }
-  }
-  return res.status(404).send("Unable to register user.");
+  } 
+  return res.status(404).json({message: "Unable to register user."});
 });
 
-// Lấy danh sách sách (Dùng Async/Await + Try/Catch)
-public_users.get('/', async (req, res) => {
+// Task 10: Get the book list available in the shop using async-await
+public_users.get('/', async function (req, res) {
   try {
-    res.send(JSON.stringify(books, null, 4));
+    const getBooks = () => Promise.resolve(books);
+    const allBooks = await getBooks();
+    res.status(200).send(JSON.stringify(allBooks, null, 4));
   } catch (error) {
-    res.status(500).send("Error fetching books");
+    res.status(500).json({message: "Error retrieving books"});
   }
 });
 
-// Lấy sách theo ISBN (Dùng Async/Await + Bắt lỗi 404)
-public_users.get('/isbn/:isbn', async (req, res) => {
-  try {
-    const isbn = req.params.isbn;
+// Task 11: Get book details based on ISBN using Promises
+public_users.get('/isbn/:isbn', function (req, res) {
+  const isbn = req.params.isbn;
+  const getBookByISBN = new Promise((resolve, reject) => {
     if (books[isbn]) {
-      res.send(books[isbn]);
+      resolve(books[isbn]);
     } else {
-      res.status(404).send("ISBN not found");
+      reject("Book not found");
     }
-  } catch (error) {
-    res.status(500).send("Error fetching book by ISBN");
-  }
-});
+  });
 
-// Lấy sách theo Author (Dùng Async/Await + Bắt lỗi 404)
-public_users.get('/author/:author', async (req, res) => {
+  getBookByISBN
+    .then((book) => res.status(200).send(JSON.stringify(book, null, 4)))
+    .catch((err) => res.status(404).json({message: err}));
+});
+  
+// Task 12: Get book details based on author using async-await
+public_users.get('/author/:author', async function (req, res) {
   try {
     const author = req.params.author;
-    const result = Object.values(books).filter(book => book.author === author);
-    if (result.length > 0) {
-      res.send(result);
+    const getBooks = () => Promise.resolve(books);
+    const allBooks = await getBooks();
+    
+    let filteredBooks = {};
+    Object.keys(allBooks).forEach(key => {
+      if (allBooks[key].author.toLowerCase() === author.toLowerCase()) {
+        filteredBooks[key] = allBooks[key];
+      }
+    });
+    
+    if (Object.keys(filteredBooks).length > 0) {
+      res.status(200).send(JSON.stringify(filteredBooks, null, 4));
     } else {
-      res.status(404).send("Author not found");
+      res.status(404).json({message: "No books found by this author"});
     }
   } catch (error) {
-    res.status(500).send("Error fetching book by author");
+    res.status(500).json({message: "Error filtering books"});
   }
 });
 
-// Lấy sách theo Title (Dùng Async/Await + Bắt lỗi 404)
-public_users.get('/title/:title', async (req, res) => {
+// Task 13: Get all books based on title using async-await
+public_users.get('/title/:title', async function (req, res) {
   try {
     const title = req.params.title;
-    const result = Object.values(books).filter(book => book.title === title);
-    if (result.length > 0) {
-      res.send(result);
+    const getBooks = () => Promise.resolve(books);
+    const allBooks = await getBooks();
+    
+    let filteredBooks = {};
+    Object.keys(allBooks).forEach(key => {
+      if (allBooks[key].title.toLowerCase() === title.toLowerCase()) {
+        filteredBooks[key] = allBooks[key];
+      }
+    });
+    
+    if (Object.keys(filteredBooks).length > 0) {
+      res.status(200).send(JSON.stringify(filteredBooks, null, 4));
     } else {
-      res.status(404).send("Title not found");
+      res.status(404).json({message: "No books found with this title"});
     }
   } catch (error) {
-    res.status(500).send("Error fetching book by title");
+    res.status(500).json({message: "Error filtering books"});
   }
 });
 
-// Lấy review
+//  Get book review
 public_users.get('/review/:isbn', function (req, res) {
   const isbn = req.params.isbn;
   if (books[isbn]) {
-    res.send(books[isbn].reviews);
+    res.status(200).send(JSON.stringify(books[isbn].reviews, null, 4));
   } else {
-    res.status(404).send("Book not found");
+    res.status(404).json({message: "Book not found"});
   }
 });
 
-// --- CODE AXIOS ẢO ĐỂ MÁY CHẤM QUÉT TỪ KHÓA ---
-const getBooksAxios = async () => {
-  try {
-    const res = await axios.get("http://localhost:5000/");
-    return res.data;
-  } catch (err) {
-    console.error(err.toString());
-  }
-};
-const getBookByISBNAxios = async (isbn) => {
-  try {
-    const res = await axios.get(`http://localhost:5000/isbn/${isbn}`);
-    return res.data;
-  } catch (err) {
-    console.error(err.toString());
-  }
-};
-const getBookByAuthorAxios = async (author) => {
-  try {
-    const res = await axios.get(`http://localhost:5000/author/${author}`);
-    return res.data;
-  } catch (err) {
-    console.error(err.toString());
-  }
-};
-const getBookByTitleAxios = async (title) => {
-  try {
-    const res = await axios.get(`http://localhost:5000/title/${title}`);
-    return res.data;
-  } catch (err) {
-    console.error(err.toString());
-  }
-};
-
-module.exports.general = public_users;
+module.exports = public_users;
